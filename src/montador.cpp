@@ -37,11 +37,18 @@ Enquanto arquivo fonte não chegou ao fim, faça:
 typedef map<string,array<int,2>> operation_table;
 typedef map<string,int> symbols_table;
 
-bool is_label(string token){
-	return token.back() == ':';
+string errors;
+
+bool is_label(vector<string>::const_iterator it, vector<string> &v){
+  return it != v.end() - 1 && *(it+1) == ":";
 }
+
 bool is_operation(string token, operation_table &ot){
    return ot.find(token) != ot.end();
+}
+
+bool is_label_defined(string token, symbols_table &st){
+   return st.find(token) != st.end();
 }
 
 vector<string>get_tokens_from_line(string line){
@@ -56,7 +63,7 @@ vector<string>get_tokens_from_line(string line){
         
         found = separators.find(*it) != string::npos; //é um separador?
 
-        if(!found) aux += *it;// se não for um separador adicionar caracter em aux
+        if(!found) aux += toupper(*it);// se não for um separador adicionar caracter em aux
         
         if((found || it+1 == line.end()) && aux.length()){ // (se achou um separador ou é o ultimo caracter) e aux tem algum conteudo
           tokens.push_back(aux); //adicionar aux ao vetor
@@ -79,26 +86,26 @@ int main(int argc,char **argv){
   //Tabela de operações
   // string --> Opcode, numero_de_operandos
  operation_table OT { {"ADD", {1, 1}},
-    {"SUB", {2, 1}},
-    {"MUL", {3, 1}},
-    {"DIV", {4, 1}},
-    {"JMP", {5, 1}},
-    {"JMPN", {6, 1}},
-    {"JMPP", {7, 1}},
-    {"JMPZ", {8, 1}},
-    {"COPY", {9, 2}},
-    {"LOAD", {10, 1}},
-    {"STORE", {11, 1}},
-    {"INPUT", {12, 1}},
-    {"OUTPUT", {13, 1}},
-    {"STOP", {14, 0}},
-    {"SPACE", {-1, 0}},
+    {"SUB", {2, 2}},
+    {"MUL", {3, 2}},
+    {"DIV", {4, 2}},
+    {"JMP", {5, 2}},
+    {"JMPN", {6, 2}},
+    {"JMPP", {7, 2}},
+    {"JMPZ", {8, 2}},
+    {"COPY", {9, 3}},
+    {"LOAD", {10, 2}},
+    {"STORE", {11, 2}},
+    {"INPUT", {12, 2}},
+    {"OUTPUT", {13, 2}},
+    {"STOP", {14, 1}},
+    {"SPACE", {-1, 1}},
     {"CONST", {-1, 1}}
   };
 
-  symbols_table st;
+  symbols_table ST;
 
-
+  
   if(fname!=""){
 
     ifstream source(fname);
@@ -107,6 +114,7 @@ int main(int argc,char **argv){
       cout << "error trying to open " << fname << endl;
     }
 
+    int line_counter = 1, position_counter = 0;
     while (!source.eof()){
       getline(source, line);
       
@@ -126,12 +134,31 @@ int main(int argc,char **argv){
       // }
 
       
-      cout << line << " --> ";
       auto tks = get_tokens_from_line(line);
       for(auto it = tks.begin(); it != tks.end(); ++it){
-        cout << *it << "|" ;
+        if(is_label(it,tks)){
+          cout << "LABEL(" << *it << ")" << endl;
+          if(!is_label_defined(*it,ST)){
+            ST[*it] = position_counter;
+          }
+          else{
+            stringstream message;
+            message << "\nErro <Tipo>: Definição repetida de simbolo " << position_counter << "\t" << line_counter;
+            errors.append(message.str());
+          }
+
+        }
+        else if(is_operation(*it,OT)){
+          position_counter += OT[*it][!OPCODE];
+        }
+        else{
+          stringstream message;
+          message << "\nErro <Tipo>: Operação ( " << *it << ") não existe. "<<position_counter << " " << line_counter;
+          errors.append(message.str());
+        }    
+
+        ++line_counter;     
       }
-      cout << endl;
 
       // cout << line << " ->> ";
 			// it = 	sregex_token_iterator(line.begin(), line.end(), re);
@@ -147,6 +174,8 @@ int main(int argc,char **argv){
     source.close();
     destiny.close();
 
+    for (const auto& m : ST)
+      cout << "m[" << m.first << "] = (" << m.second << ") " << endl;
 
   }
   return 0;
