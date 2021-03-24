@@ -2,6 +2,12 @@
   "files.associations": {
     "iostream": "cpp",
     "ostream": "cpp",
-    "*.tcc": "cpp"
+    "*.tcc": "cpp",
+    "string": "cpp",
+    "iosfwd": "cpp",
+    "array": "cpp",
+    "deque": "cpp",
+    "vector": "cpp",
+    "string_view": "cpp"
   }
 }
