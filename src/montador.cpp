@@ -219,12 +219,13 @@ vector<string>get_tokens_from_line(string line){
   }
 
 
-void first_pass(string filename){
+stringstream first_pass(string filename){
   string line;
   string abbreviation;
   vsit it;
   ifstream source(filename);
-  ofstream temp("temp" + filename);
+  stringstream temp;
+  // ofstream temp("temp" + filename);
 
   if(!source.is_open()){
     cout << "error trying to open " << filename << endl;
@@ -262,20 +263,19 @@ void first_pass(string filename){
     }
     temp << endl;
   }
-    source.close();
-    temp.close();
+  source.close();
+  return temp;
 }
 
 int main(int argc,char **argv){
   string fname = string(argv[1]!= NULL ? argv[1] : "");
   string line;
-
-  
   
   if(fname!=""){
 
     
     first_pass(fname);
+
     ofstream destiny(fname.replace(fname.end()-3 ,fname.end(), "obj"));
     destiny.close();
     if(e.any) e.show();
