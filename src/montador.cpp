@@ -102,14 +102,14 @@ string check_for_next_n_operators(int n, vsit it, vsit itend){
     if(operands == "P,P" || operands == "P,PC")
       return operands;
     else if (operands == "PP")
-        e.add(e.LEXICO, line_counter,"Está faltando \",\" entre os operandos da operação {" + *it +"}");
+        e.add(e.SINTATICO, line_counter,"Está faltando \",\" entre os operandos da operação {" + *it +"}");
 
   }
   if(n == 1 && (operands == "P" || operands == "PC")) {
     return operands;
   }
   
-  e.add(e.LEXICO, line_counter,"Número indevidos de operandos. Operação {" + *it +"} requer " +to_string(n) + " operando" + (n > 1? "s" : ""));
+  e.add(e.SINTATICO, line_counter,"Número indevidos de operandos. Operação {" + *it +"} requer " +to_string(n) + " operando" + (n > 1? "s" : ""));
 
   return ""; //jogar erros de numero de operandos
 }
@@ -137,7 +137,7 @@ string classifier(vector<string> tokens){
             n_ops = 1;
           }
           else{
-            e.add(e.SINTATICO,line_counter,"Diretiva CONST requer número inteiro como parametro, não {" + *(it+1) + "}");
+            e.add(e.LEXICO,line_counter,"Diretiva CONST requer número inteiro como parametro, não {" + *(it+1) + "}");
           }
         }
         
