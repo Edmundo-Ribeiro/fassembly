@@ -1,22 +1,9 @@
 #include <iostream>
 #include <fstream>
-#include <regex>
+#include <map>
+#include<sstream>
 #include "../include/errors.h"
 using namespace std;
-
-/**
- * Erro: numero de operandos na operação ok
- * Erro: não inteiro em const ok
- * Erro: regras da label ok
- * Erro: redefinição de rotulo ok
- * Erro: Sem vigurla em COPY ok;
- * Erro: operação não existe 
- * Erro: declarações e rótulos ausentes;
-*/
-
-
-
-
 
  //Tabela de operações
   // string --> Opcode, numero_de_operandos
@@ -32,7 +19,7 @@ constexpr bool OPCODE = 0;
 symbols_table ST;
 
 operation_table OT { 
-    {"ADD", {1, 1}},
+    {"ADD", {1, 2}},
     {"SUB", {2, 2}},
     {"MUL", {3, 2}},
     {"DIV", {4, 2}},
@@ -46,7 +33,7 @@ operation_table OT {
     {"INPUT", {12, 2}},
     {"OUTPUT", {13, 2}},
     {"STOP", {14, 1}},
-    {"SPACE", {-1, 1}},
+    {"SPACE", {0, 1}},
     {"CONST", {-1, 1}}
   };
 
@@ -68,7 +55,6 @@ bool is_int(string s){
 
 //verificar as regras de construção de uma label
 bool is_label_ok(string label){
-  string validChar("_$");
   bool flag = true;
   if(label[0] >= '0' && label[0]  <= '9') {
     flag = false;
@@ -82,7 +68,7 @@ bool is_label_ok(string label){
   for (auto it = label.begin(); it != label.end(); ++it ){
     if( (*it < 'A' || *it > 'Z') && (*it < '0' || *it > '9') && *it != '_'){
       flag = false;
-      e.add(e.LEXICO, line_counter,"{" + label +"} Label não pode conter caracteres não alfanúmericos exeto \"_\" ");
+      e.add(e.LEXICO, line_counter,"{" + label +"} Label pode conter apenas caracteres alfanúmericos e \"_\" ");
       break;
     } 
   }
@@ -103,7 +89,6 @@ bool is_label_defined(string token, symbols_table &st){
 bool is_label_definition(vsit it, vsit itend){
   return it != itend-1 && *(it+1) == ":";
 }
-
 
 
 string classifier(vector<string> tokens);
@@ -167,9 +152,6 @@ string classifier(vector<string> tokens){
             it=tokens.end()-1;
         }
     }
-      // else{
-      //   e.add(e.SINTATICO,line_counter,"Operação ( " + *it + ") não existe.");
-      // }
     else if(*it == ";"){
       anottend+= "C";
       break;
@@ -177,9 +159,9 @@ string classifier(vector<string> tokens){
     else if(*it == ","){
       anottend+=",";
     }
-    else{
+    else
       anottend += "P";
-    }
+    
   }
   return anottend;
 
@@ -196,8 +178,8 @@ vector<string>get_tokens_from_line(string line){
     //para cada caracter na linha
     for (auto it = line.begin(); it != line.end(); ++it){
         
-        found = separators.find(*it) != string::npos; //é um separador?
-
+        found = (separators.find(*it) != string::npos || *it == '\t'); //é um separador?
+       
         if(!found) aux += toupper(*it);// se não for um separador adicionar caracter em aux
         
         if((found || it+1 == line.end()) && aux.length()){ // (se achou um separador ou é o ultimo caracter) e aux tem algum conteudo
@@ -207,7 +189,7 @@ vector<string>get_tokens_from_line(string line){
           } 
           else{
             tokens.push_back(aux); //adicionar aux ao vetor
-            if ((!(*it == ' '  || (it+1) == line.end()) )|| *it ==':') tokens.push_back(string(1,*it)); // se o separador não for espaço e nem o ultimo caracter, adicinar o separador no vetor
+            if ((!(*it == ' ' || (it+1) == line.end()) )|| *it ==':') tokens.push_back(string(1,*it)); // se o separador não for espaço e nem o ultimo caracter, adicinar o separador no vetor
 
           }
           aux.clear(); // resetar aux
@@ -218,19 +200,13 @@ vector<string>get_tokens_from_line(string line){
       return tokens;
   }
 
-
-stringstream first_pass(string filename){
+//realiz a primeira passagem e retorna "arquivo" intermediario
+stringstream first_pass(ifstream &source){
   string line;
   string abbreviation;
   vsit it;
-  ifstream source(filename);
   stringstream temp;
-  // ofstream temp("temp" + filename);
-
-  if(!source.is_open()){
-    cout << "error trying to open " << filename << endl;
-  }
-
+  
   while (!source.eof()){
     getline(source, line);
     
@@ -247,16 +223,17 @@ stringstream first_pass(string filename){
 
     it = tokens.begin();
     for(auto c = abbreviation.begin(); c != abbreviation.end(); ++c){
-
         switch (*c){
           case 'L': it+=2; break;
           
-          case 'O': ++c; temp << *it << "\t"; ++it;break;
+          case 'O': ++c; temp << *it << " "; ++it;break;
           
           case 'C': break;
+
+          case ',': ++it; continue;
           
           default:
-            temp << *it << "\t";
+            temp << *it << " ";
             it += it+1 == tokens.end() ? 0 : 1;
             break;
         }
@@ -264,24 +241,85 @@ stringstream first_pass(string filename){
     temp << endl;
   }
   source.close();
+  line_counter = 1;
+  position_counter = 0;
   return temp;
+}
+//realiza segunda passagem e retonar dados para o arquivo .obj
+stringstream second_pass(stringstream &temp){
+  string line;
+  vector<string> tokens;
+  stringstream output_content;
+
+  while (!temp.eof()){
+    getline(temp,line);
+    tokens = get_tokens_from_line(line);
+
+    if(tokens.empty()){
+      ++line_counter;
+      continue;
+    } 
+
+    for(auto it = tokens.begin(); it != tokens.end(); ++it){
+      if(is_operation(*it, OT)){
+        auto op_info = OT[*it];
+
+        if(*it == "CONST"){
+          output_content << *(it+1) << " ";
+          position_counter += op_info[!OPCODE];
+          ++it;
+        }
+        else{
+          output_content << op_info[OPCODE] << " ";
+          position_counter += op_info[!OPCODE];   
+          if(op_info[!OPCODE] != 1){
+            for(int i = 0; i < op_info[!OPCODE]-1; ++i){
+              it++;
+              if(is_label_defined(*it, ST)){
+                output_content << ST[*it] << " ";
+              }
+              else{
+                e.add(e.SEMANTICO,line_counter,"Simbolo {" + *it + "} não está definido.");
+              }
+            }         
+          }
+        }
+      }
+      else{
+        e.add(e.SEMANTICO,line_counter,"Operação {" + *it + "} não existe.");
+      }
+    }
+    ++line_counter;
+  }
+  return output_content;
 }
 
 int main(int argc,char **argv){
   string fname = string(argv[1]!= NULL ? argv[1] : "");
-  string line;
+  stringstream temp_data,obj_data;
   
-  if(fname!=""){
-
-    
-    first_pass(fname);
-
-    ofstream destiny(fname.replace(fname.end()-3 ,fname.end(), "obj"));
-    destiny.close();
-    if(e.any) e.show();
-    for (const auto& m : ST)
-      cout << "m[" << m.first << "] = (" << m.second << ") " << endl;
-
+  ifstream source(fname);
+  
+  if(fname == ""){
+    cout << "É necessário informar um arquivo .asm" << endl;
+    return 0;
   }
+
+  if(!source.is_open()){
+    cout << "Erro ao tentar abrir: " << fname << endl;
+    return 0;
+  }   
+
+  temp_data = first_pass(source);
+  obj_data = second_pass(temp_data);
+
+  if(e.any)
+    e.show();
+  else{
+    ofstream destiny(fname.replace(fname.end()-3 ,fname.end(), "obj"));
+    destiny << obj_data.str();
+    destiny.close();
+  }
+ 
   return 0;
 }
