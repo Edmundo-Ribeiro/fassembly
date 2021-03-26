@@ -2,7 +2,7 @@
 #include <fstream>
 #include <map>
 #include<sstream>
-#include "../include/errors.h"
+#include "../../include/errors.h"
 using namespace std;
 
  //Tabela de operações
