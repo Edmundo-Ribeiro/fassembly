@@ -27,7 +27,7 @@ O código desse repositorio consite de um montador e um simulador para fassembly
 ## Baixar
 Para baixar, execute na linha de comando 
 ```sh
-git clone https://github.com/yudi-azvd/sb-assembler-and-simulator
+git clone https://github.com/Edmundo-Ribeiro/fassembly.git
 ```
 
 ## Utilizar
