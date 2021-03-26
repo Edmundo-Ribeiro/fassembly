@@ -1,6 +1,6 @@
 # Fassembly
 Fassembly (Fake Assembly) é como decidi chamar a linguagem de montagem "fake" criada para fins didáticos durante a disciplina de 
-Software Básico (Softtware de Sistemas) da Universidade de Brasília.
+Software Básico (Software de Sistemas) da Universidade de Brasília.
 
 A linguagem consiste de 14 instruções e 2 diretivas {CONST, SPACE}:
 
