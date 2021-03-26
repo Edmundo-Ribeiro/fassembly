@@ -42,5 +42,5 @@ MKDIR_P = mkdir -p
 clean: 
 	rm -rf $(BD)/*
 clear: clean
-	rm -f $(MAIN1).o
-	rm -f $(MAIN2).o
+	rm -f $(MAIN1)
+	rm -f $(MAIN2)
