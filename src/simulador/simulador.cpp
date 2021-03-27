@@ -183,21 +183,35 @@ int main (int argc, char **argv ){
 
   auto start = codes.begin();
   for(auto vector_position = codes.begin();;){
-    // cout << *vector_position << endl;
+    cout << "OPCODE LIDA: " << *vector_position << endl;
 
-    if(*vector_position == STOP) break; // se é a instrução stop pare o simulador
+    if(*vector_position == STOP) {
+      position_counter += 1;
+      cout << "PC <- " << position_counter << endl;
+      cout << "ACC <- " << accumulator << endl << endl;
+      break;
+    } // se é a instrução stop pare o simulador
 
     int n_ops = op_size[*vector_position]; //numepro de operando é apenas o tamanho da operação - 1 
 
+     cout << "N operandos: " << n_ops << endl;
+
+
     if(n_ops != 1){ // se tem operandos pegue o primeiro
       position = *(vector_position+1);
-      d.value1 = variable_at(position,codes);
+      cout << "position: " << position << endl;
+      if(*vector_position > 4 && *vector_position < 9 ) // se for uma OP do tipo jump  
+        d.value1 = &position;
+      else
+        d.value1 = variable_at(position,codes);
+      cout << "*d.value1 " << *d.value1 << endl;
     }
     if(n_ops == 3){// se tem dois operando pegue o segundo
       position = *(vector_position+2);
       d.value2 = variable_at(position,codes);
     }
-
+    for (auto it = variables.begin(); it != variables.end(); ++it)
+      cout << "Variables" << endl << "[" << it->first << "] : {" << it->second << "}" << endl; 
     operation[*vector_position](&d); //execute a função
 
     if(*vector_position == OUTPUT) // colocar saida no arquivo

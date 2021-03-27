@@ -17,6 +17,7 @@ constexpr bool OPCODE = 0;
  
   
 symbols_table ST;
+symbols_table LT;
 
 operation_table OT { 
     {"ADD", {1, 2}},
@@ -45,11 +46,15 @@ int line_counter = 1, position_counter = 0;
 
 //Verificar se string é um numero inteiro
 bool is_int(string s){
+  cout << "IS INT FIM"<< endl;
+  if(s.empty()) return false;
+
   auto start = (s[0] == '-' ? s.begin() + 1 : s.begin());
 
   for(auto c = start; c != s.end(); ++c){
     if(*c > '9' || *c < '0') return false; 
   }
+
   return true;
 }
 
@@ -94,37 +99,155 @@ bool is_label_definition(vsit it, vsit itend){
 string classifier(vector<string> tokens);
 string check_for_next_n_operators(int n, vsit it, vsit itend);
 
-//verificar se apos operação o numero certo de operandos está presente
-string check_for_next_n_operators(int n, vsit it, vsit itend){
-  vector<string> aux(it+1,itend);
-  string operands = classifier(aux);
-  if(n == 2 ){
-    if(operands == "P,P" || operands == "P,PC")
-      return operands;
-    else if (operands == "PP")
-        e.add(e.SINTATICO, line_counter,"Está faltando \",\" entre os operandos da operação {" + *it +"}");
 
+string check_for_next_n_operators(int n, vsit it, vsit itend){
+
+  // if(it + 1 == itend){
+  //   return "0";
+  // }
+
+  vector<string> aux(it+1,itend);
+
+  string rest_of_vector = classifier(aux);
+
+  if(n == 2 ){
+    if(rest_of_vector == "P,P" || rest_of_vector == "P,PC"){
+      return "2"+rest_of_vector;
+    }
+
+    else if (rest_of_vector == "PP" || rest_of_vector == "PPC"){
+      e.add(e.SINTATICO, line_counter,"Está faltando \",\" entre os operandos da operação {" + *it +"}");
+      return "2" + rest_of_vector;
+    }    
   }
-  if(n == 1 && (operands == "P" || operands == "PC")) {
-    return operands;
+
+  if(n == 1 && (rest_of_vector == "P" || rest_of_vector == "PC")) {
+    return "1" + rest_of_vector;
   }
-  
+
+  if(n == 0 && (rest_of_vector == "" || rest_of_vector == "C"))
+    return "0" + rest_of_vector;
+
   e.add(e.SINTATICO, line_counter,"Número indevidos de operandos. Operação {" + *it +"} requer " +to_string(n) + " operando" + (n > 1? "s" : ""));
 
-  return ""; //jogar erros de numero de operandos
+  return to_string(rest_of_vector.size()) + rest_of_vector;
+
+
+
 }
+
+// //verificar se apos operação o numero certo de operandos está presente
+// string check_for_next_n_operators(int n, vsit it, vsit itend){
+//   vector<string> aux(it+1,itend);
+
+//   cout << "AUX vect: ";
+//   for(auto it = aux.begin(); it != aux.end(); ++it)
+//     cout << *it << " ";
+//   cout << endl;
+
+//   string operands = classifier(aux);
+//   cout << "OPRANDs:" << operands;
+//   if(n == 2 ){
+//     if(operands == "P,P" || operands == "P,PC")
+//       return operands;
+//     else if (operands == "PP")
+//         e.add(e.SINTATICO, line_counter,"Está faltando \",\" entre os operandos da operação {" + *it +"}");
+
+//   }
+//   if(n == 1 && (operands == "P" || operands == "PC")) {
+//     return operands;
+//   }
+  
+//   e.add(e.SINTATICO, line_counter,"Número indevidos de operandos. Operação {" + *it +"} requer " +to_string(n) + " operando" + (n > 1? "s" : ""));
+
+//   return operands; //jogar erros de numero de operandos
+// }
+
+
+
+//variaveis para lidar com casos em que section data vem antes de text
+int data_starts = -1;
+int text_starts = -1;
+int shift_position_data = 0;
+int shift_position_text = 0;
+bool in_data_section = false;
+
+//De uma linha do arquivo fonte, separa todos os tokens
+vector<string>get_tokens_from_line(string line){
+
+    vector<string> tokens; //vetor para retorno
+    string aux; // armazenamento temporario dos tokens
+    string separators (",:; "); // indicações de cortar string
+    bool found;
+    bool flag_section = false;
+    //para cada caracter na linha
+    for (auto it = line.begin(); it != line.end(); ++it){
+        cout << *it << "-";
+        found = (separators.find(*it) != string::npos || *it == '\t'); //é um separador?
+       
+        if(!found) aux += toupper(*it);// se não for um separador adicionar caracter em aux
+        
+        if((found || it+1 == line.end()) && aux.length()){ // (se achou um separador ou é o ultimo caracter) e aux tem algum conteudo
+          if(aux == "SECTION"){
+            cout << "ACHOU SECTION" << endl;
+            aux.clear();
+            flag_section = true;
+            continue;
+          } 
+          else if(flag_section && aux == "DATA"){
+            cout << "ACHOU DATDA" << endl;
+            aux.clear();
+            in_data_section = true;
+            flag_section = false;
+            data_starts = line_counter;
+            shift_position_text = position_counter;
+            cout << line_counter << endl;
+            break;            
+          }
+          else if(flag_section && aux == "TEXT"){
+            cout << "ACHOU TEXT" << endl;
+            aux.clear();
+            flag_section = false;
+            in_data_section = false;
+            shift_position_data = position_counter;
+            shift_position_text = position_counter - shift_position_text;
+            text_starts = line_counter;
+            cout << line_counter << endl;
+            break;
+          }
+          else{
+            tokens.push_back(aux); //adicionar aux ao vetor
+            if ((!(*it == ' ' || (it+1) == line.end()) )|| *it ==':') tokens.push_back(string(1,*it)); // se o separador não for espaço e nem o ultimo caracter, adicinar o separador no vetor
+
+          }
+          aux.clear(); // resetar aux
+        }
+        else if(*it == ';') tokens.push_back(string(1,*it)); //se achou um separador mas a aux não tem conteudo, colocar ";" no vetor. a linha inteira é um comentario
+
+    }
+    cout << endl;
+    return tokens;
+  }
+
 
 
 //cria string classificando os tokens (tbm verifica erros e cria tabela de simbolos)
 string classifier(vector<string> tokens){
-  string anottend;
+  string anottend = "";
   int n_ops = 0;
+  symbols_table * destination_table = &LT;
 
   for(auto it = tokens.begin(); it != tokens.end(); ++it){
     if(is_label_definition(it, tokens.end())){
       if(is_label_ok(*it)){
-        if(!is_label_defined(*it,ST)) 
-          ST[*it] = position_counter;
+        
+        if(in_data_section){
+          destination_table = &ST;
+        }
+
+
+        if(!is_label_defined(*it,ST) && !is_label_defined(*it, LT))
+          (*destination_table)[*it] = position_counter;
         else
           e.add(e.SEMANTICO,line_counter,"Redefinição de simbolo { " + *it + " }.");
       }
@@ -132,25 +255,38 @@ string classifier(vector<string> tokens){
       ++it;
     }
     else if(is_operation(*it,OT)){
-        if(*it == "CONST"){
-          if(is_int(*(it+1))){
-            n_ops = 1;
-          }
-          else{
-            e.add(e.LEXICO,line_counter,"Diretiva CONST requer número inteiro como parametro, não {" + *(it+1) + "}");
-          }
-        }
-        
         position_counter += OT[*it][!OPCODE];
-        n_ops += OT[*it][!OPCODE] - 1;
-
-        anottend += ("O" + to_string(n_ops));
         
-        if(n_ops != 0){
-            string res = check_for_next_n_operators(n_ops,it,tokens.end());
-            anottend += res;
-            it=tokens.end()-1;
+        n_ops += OT[*it][!OPCODE] - 1; // numero de operando geralmente é o tamanho - 1
+        if( *it == "CONST") n_ops = 1; // no caso da diretiva const ela tem que ter um operando
+        anottend += ("O"); // identificar na abreviação uma operacao
+
+
+        string res = check_for_next_n_operators(n_ops,it,tokens.end());
+
+        if(*it == "CONST" && res[0] != '0'){
+          if(!is_int(*(it+1))){
+            e.add(e.LEXICO,line_counter,"Diretiva CONST requer número inteiro como parametro, não {" + *(it+1) + "}");
+            res[0] = '0';
+          }
         }
+
+        anottend += res;
+        break;
+        // it=tokens.end()-1;
+
+        if(*it == "CONST" ){
+          n_ops = 1;
+
+          if(!is_int((it+1) == tokens.end() ? "" : *(it+1))){
+            e.add(e.LEXICO,line_counter,"Diretiva CONST requer número inteiro como parametro, não {" + *(it+1) + "}");
+            break;
+          }
+        }
+
+
+        
+        
     }
     else if(*it == ";"){
       anottend+= "C";
@@ -167,38 +303,6 @@ string classifier(vector<string> tokens){
 
 }
 
-//De uma linha do arquivo fonte, separa todos os tokens
-vector<string>get_tokens_from_line(string line){
-
-    vector<string> tokens; //vetor para retorno
-    string aux; // armazenamento temporario dos tokens
-    string separators (",:; "); // indicações de cortar string
-    bool found;
-
-    //para cada caracter na linha
-    for (auto it = line.begin(); it != line.end(); ++it){
-        
-        found = (separators.find(*it) != string::npos || *it == '\t'); //é um separador?
-       
-        if(!found) aux += toupper(*it);// se não for um separador adicionar caracter em aux
-        
-        if((found || it+1 == line.end()) && aux.length()){ // (se achou um separador ou é o ultimo caracter) e aux tem algum conteudo
-          if(aux == "SECTION"){
-            aux.clear();
-            break;
-          } 
-          else{
-            tokens.push_back(aux); //adicionar aux ao vetor
-            if ((!(*it == ' ' || (it+1) == line.end()) )|| *it ==':') tokens.push_back(string(1,*it)); // se o separador não for espaço e nem o ultimo caracter, adicinar o separador no vetor
-
-          }
-          aux.clear(); // resetar aux
-        }
-        else if(*it == ';') tokens.push_back(string(1,*it)); //se achou um separador mas a aux não tem conteudo, colocar ";" no vetor. a linha inteira é um comentario
-
-      }
-      return tokens;
-  }
 
 //realiz a primeira passagem e retorna "arquivo" intermediario
 stringstream first_pass(ifstream &source){
@@ -206,11 +310,25 @@ stringstream first_pass(ifstream &source){
   string abbreviation;
   vsit it;
   stringstream temp;
-  
+  int n;
+  bool invert_content;
+
+  cout << "PRIMEIRA PASSAGEM" << endl;
+
   while (!source.eof()){
     getline(source, line);
     
+    cout << "PC: " << position_counter << endl;
+    cout << "LC: " << line_counter << endl;
+    cout << "A linha é: "<< line << endl;
+
+
     auto tokens = get_tokens_from_line(line);
+
+    cout << "Os tokens são:";
+    for(auto it = tokens.begin(); it != tokens.end(); ++it)
+      cout << *it << " ";
+    cout << endl;
 
     if(tokens.empty()){
       ++line_counter;
@@ -219,14 +337,32 @@ stringstream first_pass(ifstream &source){
     } 
 
     abbreviation = classifier(tokens);
+    cout << "A abreviação foi:" << abbreviation << endl;
+
+
+    cout << endl << "erros até o momentos:" << endl;
+    e.show();
+    cout << endl;
     ++line_counter;
 
     it = tokens.begin();
-    for(auto c = abbreviation.begin(); c != abbreviation.end(); ++c){
-        switch (*c){
+    for(int i = 0; i < abbreviation.size(); ++i){
+        switch (abbreviation[i]){
           case 'L': it+=2; break;
           
-          case 'O': ++c; temp << *it << " "; ++it;break;
+          case 'O': 
+            ++i;
+            n = (abbreviation[i]) - '0';
+            cout << "Ate aqui " << n <<endl;
+            if((n == OT[*it][!OPCODE]-1 && *it != "CONST")|| (*it == "CONST" && n == 1)){
+              cout << "colocando " << *it << " no arquivo" << endl;
+              temp << *it << " "; 
+              ++it;
+            }
+            else{
+              i = abbreviation.size() - 1;
+            }
+            break;
           
           case 'C': break;
 
@@ -239,7 +375,21 @@ stringstream first_pass(ifstream &source){
         }
     }
     temp << endl;
+
+    cout << "Tabela de simbolos é:" << endl;
+    for(auto it = ST.begin(); it != ST.end(); ++it)
+      cout << "[" << it->first << "] : {" << it->second << "}"<<endl;
+    cout << "Tabela de labels é:" << endl;
+    for(auto it = LT.begin(); it != LT.end(); ++it)
+      cout << "[" << it->first << "] : {" << it->second << "}"<<endl;
   }
+
+  invert_content = data_starts < text_starts && data_starts != -1;
+  if(invert_content){
+    shift_position_data = position_counter - shift_position_data;
+    cout << "shift amount " << shift_position_data << endl; 
+  }
+
   source.close();
   line_counter = 1;
   position_counter = 0;
@@ -250,10 +400,38 @@ stringstream second_pass(stringstream &temp){
   string line;
   vector<string> tokens;
   stringstream output_content;
+  stringstream in_case_of_data_first;
+  stringstream * output_destiny;
+  bool invert_content = data_starts < text_starts && data_starts != -1;
+  output_destiny = &output_content;
+
+  cout << endl<< endl<< "SEGUNDA PASSAGEM" << endl;
+
+
+  if(invert_content){
+    cout << "INVERT" << endl;
+
+    output_destiny = &in_case_of_data_first;
+  }
 
   while (!temp.eof()){
     getline(temp,line);
+
+
+    cout << "PC: " << position_counter << endl;
+    cout << "LC: " << line_counter << endl;
+    cout << "A linha é: "<< line << endl;
+
     tokens = get_tokens_from_line(line);
+
+    cout << "Os tokens são:";
+    for(auto it = tokens.begin(); it != tokens.end(); ++it)
+      cout << *it << " ";
+    cout << endl;
+
+    if(invert_content && line_counter == text_starts){
+      output_destiny = &output_content;
+    }
 
     if(tokens.empty()){
       ++line_counter;
@@ -265,18 +443,28 @@ stringstream second_pass(stringstream &temp){
         auto op_info = OT[*it];
 
         if(*it == "CONST"){
-          output_content << *(it+1) << " ";
+          *(output_destiny) << *(it+1) << " ";
           position_counter += op_info[!OPCODE];
           ++it;
         }
         else{
-          output_content << op_info[OPCODE] << " ";
+          *(output_destiny) << op_info[OPCODE] << " ";
           position_counter += op_info[!OPCODE];   
           if(op_info[!OPCODE] != 1){
             for(int i = 0; i < op_info[!OPCODE]-1; ++i){
               it++;
               if(is_label_defined(*it, ST)){
-                output_content << ST[*it] << " ";
+                if(invert_content)
+                  *(output_destiny) << ST[*it]  + shift_position_data << " ";
+                else
+                  *(output_destiny) << ST[*it]  << " ";
+              }
+              else if(is_label_defined(*it, LT)){
+                if(invert_content)
+                  *(output_destiny) << LT[*it] - shift_position_text  << " ";
+                
+                else
+                  *(output_destiny) << LT[*it]  << " ";
               }
               else{
                 e.add(e.SEMANTICO,line_counter,"Simbolo {" + *it + "} não está definido.");
@@ -290,7 +478,22 @@ stringstream second_pass(stringstream &temp){
       }
     }
     ++line_counter;
+
+     cout << endl << "erros até o momentos:" << endl;
+    e.show();
+    cout << endl;
   }
+
+  cout << "conteudo de output_content" << endl << output_content.str() << endl;
+  cout << "conteudo de in case of data" << endl << in_case_of_data_first.str() << endl;
+
+  if(invert_content){
+    output_content << in_case_of_data_first.str();
+  }
+
+  cout << "conteudo de output_content alfter invert" << endl << output_content.str() << endl;
+
+
   return output_content;
 }
 
