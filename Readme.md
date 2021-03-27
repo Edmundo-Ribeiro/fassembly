@@ -1,6 +1,6 @@
 # Fassembly
 Fassembly (Fake Assembly) é como decidi chamar a linguagem de montagem "fake" criada para fins didáticos durante a disciplina de 
-Software Básico (Softtware de Sistemas) da Universidade de Brasília.
+Software Básico (Software de Sistemas) da Universidade de Brasília.
 
 A linguagem consiste de 14 instruções e 2 diretivas {CONST, SPACE}:
 
@@ -27,7 +27,7 @@ O código desse repositorio consite de um montador e um simulador para fassembly
 ## Baixar
 Para baixar, execute na linha de comando 
 ```sh
-git clone https://github.com/yudi-azvd/sb-assembler-and-simulator
+git clone https://github.com/Edmundo-Ribeiro/fassembly.git
 ```
 
 ## Utilizar
@@ -39,8 +39,17 @@ Para compilar o **`montador`** e o **`simulador`** basta fazer:
 #entrar no diretório baixado
 cd fassembly
 
-# compilar arquivos 
+# compilar o montaor e simulador 
 make
+
+#compilar apenas montador
+make m
+
+#compilar apenas simulador
+make s
+
+#apagar tudo
+make clear
 ```
 Para executar o montador basta fazer:
 ```sh
@@ -48,7 +57,7 @@ Para executar o montador basta fazer:
 ./montador <CAMINHO_ARQUIVO.asm>
 
 # exemplo
-./montador examples/fatorial.asm
+./montador examples/fibonacci.asm
 ```
 Com o arquivo .obj resultante do passo anterior, para executar o simulador basta fazer:
 
@@ -57,4 +66,4 @@ Com o arquivo .obj resultante do passo anterior, para executar o simulador basta
 ./simulador <CAMINHO_ARQUIVO.obj>
 
 # exemplo
-./simulador examples/fatorial.obj
+./simulador examples/fibonacci.obj
