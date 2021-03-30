@@ -41,6 +41,12 @@ MKDIR_P = mkdir -p
 
 clean: 
 	rm -rf $(BD)/*
+	
 clear: clean
 	rm -f $(MAIN1)
 	rm -f $(MAIN2)
+
+discart:
+	rm -f *.obj
+	rm -f *.OUT
+	
