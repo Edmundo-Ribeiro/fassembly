@@ -30,7 +30,7 @@ Para baixar, execute na linha de comando
 git clone https://github.com/Edmundo-Ribeiro/fassembly.git
 ```
 
-## Utilizar
+# Utilizar
 *Para compilar o projeto é necessário ter [Make](https://www.gnu.org/software/make/) instalado em sua máquina.
 
 Para compilar o **`montador`** e o **`simulador`** basta fazer:
@@ -66,4 +66,4 @@ Com o arquivo .obj resultante do passo anterior, para executar o simulador basta
 ./simulador <CAMINHO_ARQUIVO.obj>
 
 # exemplo
-./simulador examples/fibonacci.obj
+./simulador fibonacci.obj

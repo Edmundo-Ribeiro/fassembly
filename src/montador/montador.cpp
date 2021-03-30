@@ -122,7 +122,7 @@ string check_for_next_n_operators(int n, vsit it, vsit itend){
   if(n == 0 && (rest_of_vector == "" || rest_of_vector == "C"))
     return "0" + rest_of_vector;
 
-  e.add(e.SINTATICO, line_counter,"Número indevidos de operandos. Operação {" + *it +"} requer " +to_string(n) + " operando" + (n > 1? "s" : ""));
+  e.add(e.SINTATICO, line_counter,"Número indevidos de operandos. Operação {" + *it +"} requer " +to_string(n) + " operando" + (n > 1? "s." : "."));
 
   return to_string(rest_of_vector.size()) + rest_of_vector;
 }
@@ -292,6 +292,8 @@ stringstream first_pass(ifstream &source){
             token_it += token_it+1 == tokens.end() ? 0 : 1;
             ++i;
           }
+          else
+            i = abbreviation.size();
           break;
         default: break;
       }
@@ -374,35 +376,36 @@ stringstream second_pass(stringstream &temp){
           *(output_destiny) << *(token_it+1) << " ";
           position_counter += (op_info[!OPCODE] - 1);
           ++token_it;
+          break;
         }
-        else{
-          *(output_destiny) << op_info[OPCODE] << " ";
-          position_counter += op_info[!OPCODE];   
-          if(op_info[!OPCODE] != 1){
-            for(int i = 0; i < op_info[!OPCODE]-1; ++i){
-              token_it++;
-              if(is_label_defined(*token_it, data_table)){
-                if(invert_content)
-                  *(output_destiny) << data_table[*token_it]  + shift_position_data << " ";
-                else
-                  *(output_destiny) << data_table[*token_it]  << " ";
-              }
-              else if(is_label_defined(*token_it, text_table)){
-                if(invert_content)
-                  *(output_destiny) << text_table[*token_it] - shift_position_text  << " ";
-                
-                else
-                  *(output_destiny) << text_table[*token_it]  << " ";
-              }
-              else{
-                e.add(e.SEMANTICO,line_counter,"Simbolo {" + *token_it + "} não está definido.");
-              }
-            }         
-          }
+      
+        *(output_destiny) << op_info[OPCODE] << " ";
+        position_counter += op_info[!OPCODE];   
+        if(op_info[!OPCODE] != 1){
+          for(int i = 0; i < op_info[!OPCODE]-1; ++i){
+            token_it++;
+            if(is_label_defined(*token_it, data_table)){
+              if(invert_content)
+                *(output_destiny) << data_table[*token_it]  + shift_position_data << " ";
+              else
+                *(output_destiny) << data_table[*token_it]  << " ";
+            }
+            else if(is_label_defined(*token_it, text_table)){
+              if(invert_content)
+                *(output_destiny) << text_table[*token_it] - shift_position_text  << " ";
+              
+              else
+                *(output_destiny) << text_table[*token_it]  << " ";
+            }
+            else{
+              e.add(e.SEMANTICO,line_counter,"Simbolo {" + *token_it + "} não está definido.");
+            }
+          }         
         }
+      
       }
       else{
-        e.add(e.SINTATICO,line_counter,"Operação {" + *token_it + "} não existe.");
+        e.add(e.SEMANTICO,line_counter,"Operação {" + *token_it + "} não existe.");
       }
     }
     ++line_counter;

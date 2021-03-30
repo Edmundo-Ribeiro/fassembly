@@ -9,7 +9,7 @@ class ERRORS{
   public:
     std::vector<std::string> messages;
     bool any = false;
-    std::string error_types[3] = {"Semântico", "Léxico", "Sintático"};
+    std::string error_types[3] = {"Semântico", "Sintático","Léxico"};
 
     const uint8_t SEMANTICO = 0;
     const uint8_t SINTATICO = 1;
