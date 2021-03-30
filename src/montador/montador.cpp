@@ -6,7 +6,7 @@
 using namespace std;
 
  //Tabela de operações
-  // string --> Opcode, numero_de_operandos
+  // string --> Opcode, tamanho
 typedef map<string,array<int,2>> operation_table;
 
 typedef map<string,int> symbols_table;
@@ -16,10 +16,10 @@ typedef vector<string>::iterator vsit;
 constexpr bool OPCODE = 0;
  
   
-symbols_table ST;
-symbols_table LT;
+symbols_table data_table;
+symbols_table text_table;
 
-operation_table OT { 
+operation_table operations { 
     {"ADD", {1, 2}},
     {"SUB", {2, 2}},
     {"MUL", {3, 2}},
@@ -35,7 +35,7 @@ operation_table OT {
     {"OUTPUT", {13, 2}},
     {"STOP", {14, 1}},
     {"SPACE", {0, 1}},
-    {"CONST", {-1, 1}}
+    {"CONST", {-1, 2}}
   };
 
 //guardar erros
@@ -98,13 +98,8 @@ bool is_label_definition(vsit it, vsit itend){
 string classifier(vector<string> tokens);
 string check_for_next_n_operators(int n, vsit it, vsit itend);
 
-
+//a partir de uma posição dada procurar os operandos no restante do vetor e verificar se correspondem ao numero de operandos da operação
 string check_for_next_n_operators(int n, vsit it, vsit itend){
-
-  // if(it + 1 == itend){
-  //   return "0";
-  // }
-
   vector<string> aux(it+1,itend);
 
   string rest_of_vector = classifier(aux);
@@ -130,9 +125,6 @@ string check_for_next_n_operators(int n, vsit it, vsit itend){
   e.add(e.SINTATICO, line_counter,"Número indevidos de operandos. Operação {" + *it +"} requer " +to_string(n) + " operando" + (n > 1? "s" : ""));
 
   return to_string(rest_of_vector.size()) + rest_of_vector;
-
-
-
 }
 
 
@@ -195,68 +187,59 @@ vector<string>get_tokens_from_line(string line){
   }
 
 
-
 //cria string classificando os tokens (tbm verifica erros e cria tabela de simbolos)
 string classifier(vector<string> tokens){
-  string anottend = "";
+  string abbreviation = "";
   int n_ops = 0;
-  symbols_table * destination_table = &LT;
+  symbols_table * destination_table = &text_table;
 
-  for(auto it = tokens.begin(); it != tokens.end(); ++it){
-    if(is_label_definition(it, tokens.end())){
-      if(is_label_ok(*it)){
+  for(auto token_it = tokens.begin(); token_it != tokens.end(); ++token_it){
+    if(is_label_definition(token_it, tokens.end())){
+      if(is_label_ok(*token_it)){
         
         if(in_data_section){
-          destination_table = &ST;
+          destination_table = &data_table;
         }
 
-
-        if(!is_label_defined(*it,ST) && !is_label_defined(*it, LT))
-          (*destination_table)[*it] = position_counter;
+        if(!is_label_defined(*token_it,data_table) && !is_label_defined(*token_it, text_table))
+          (*destination_table)[*token_it] = position_counter;
         else
-          e.add(e.SEMANTICO,line_counter,"Redefinição de simbolo { " + *it + " }.");
+          e.add(e.SEMANTICO,line_counter,"Redefinição de simbolo { " + *token_it + " }.");
       }
-      anottend += "L";
-      ++it;
+      abbreviation += "L";
+      ++token_it;
     }
-    else if(is_operation(*it,OT)){
-        position_counter += OT[*it][!OPCODE];
-        
-        n_ops += OT[*it][!OPCODE] - 1; // numero de operando geralmente é o tamanho - 1
-        if( *it == "CONST") n_ops = 1; // no caso da diretiva const ela tem que ter um operando
-        anottend += ("O"); // identificar na abreviação uma operacao
-
-
-        string res = check_for_next_n_operators(n_ops,it,tokens.end());
-
-        if(*it == "CONST" && res[0] != '0'){
-          if(!is_int(*(it+1))){
-            e.add(e.SINTATICO,line_counter,"Diretiva CONST requer número inteiro como parametro, não {" + *(it+1) + "}");
-            res[0] = '0';
-          }
-        }
-
-        anottend += res;
-        break;
-
+    else if(is_operation(*token_it,operations)){
+      position_counter += *token_it != "CONST"? operations[*token_it][!OPCODE]: 1;
       
+      n_ops += operations[*token_it][!OPCODE] - 1; // numero de operando geralmente é o tamanho - 1
+      abbreviation += ("O"); // identificar na abreviação uma operacao
 
-        
-        
+
+      string res = check_for_next_n_operators(n_ops,token_it,tokens.end());
+
+      if(*token_it == "CONST" && res[0] != '0'){
+        if(!is_int(*(token_it+1))){
+          e.add(e.SINTATICO,line_counter,"Diretiva CONST requer número inteiro como parametro, não {" + *(token_it+1) + "}");
+          res[0] = '0';
+        }
+      }
+
+      abbreviation += res;
+      break;             
     }
-    else if(*it == ";"){
-      anottend+= "C";
+    else if(*token_it == ";"){
+      abbreviation+= "C";
       break;
     }
-    else if(*it == ","){
-      anottend+=",";
+    else if(*token_it == ","){
+      abbreviation+=",";
     }
     else
-      anottend += "P";
+      abbreviation += "P";
     
   }
-  return anottend;
-
+  return abbreviation;
 }
 
 
@@ -264,21 +247,16 @@ string classifier(vector<string> tokens){
 stringstream first_pass(ifstream &source){
   string line;
   string abbreviation;
-  vsit it;
+  vsit token_it;
   stringstream temp;
-  int n;
+  int found_operands,number_of_operands;
   bool invert_content;
 
 
   while (!source.eof()){
     getline(source, line);
-    
-    
-
-
+  
     auto tokens = get_tokens_from_line(line);
-
-
 
     if(tokens.empty()){
       ++line_counter;
@@ -290,17 +268,46 @@ stringstream first_pass(ifstream &source){
 
     ++line_counter;
 
-    it = tokens.begin();
+    token_it = tokens.begin();
+    int i = 0;
+    while(i < abbreviation.size()){
+      switch (abbreviation[i]){
+
+        case 'L': token_it+=2; break; // se for uma defnição de label, pular e ignorar
+        
+        case 'C': break;//se for um comentario, ignorar
+
+        case ',': token_it+=1; break; // se for uma virgula, pular e ignorar
+
+        case 'P': //inserir no arquivo
+          temp << *token_it << " ";
+          token_it += token_it+1 == tokens.end() ? 0 : 1;
+          break; 
+
+        case 'O':
+          found_operands = (abbreviation[i+1]) - '0';
+          number_of_operands = operations[*token_it][!OPCODE] - 1;
+          if((*token_it != "CONST" && found_operands == number_of_operands) || (*token_it == "CONST" && found_operands == 1)){
+            temp << *token_it << " ";
+            token_it += token_it+1 == tokens.end() ? 0 : 1;
+            ++i;
+          }
+          break;
+        default: break;
+      }
+      ++i;
+    }
+    /*
     for(int i = 0; i < abbreviation.size(); ++i){
         switch (abbreviation[i]){
-          case 'L': it+=2; break;
+          case 'L': token_it+=2; break;
           
           case 'O': 
             ++i;
-            n = (abbreviation[i]) - '0';
-            if((n == OT[*it][!OPCODE]-1 && *it != "CONST")|| (*it == "CONST" && n == 1)){
-              temp << *it << " "; 
-              ++it;
+            found_operands = (abbreviation[i]) - '0';
+            if((found_operands == operations[*token_it][!OPCODE]-1 && *token_it != "CONST")|| (*token_it == "CONST" && found_operands == 1)){
+              temp << *token_it << " "; 
+              ++token_it;
             }
             else{
               i = abbreviation.size() - 1;
@@ -309,20 +316,19 @@ stringstream first_pass(ifstream &source){
           
           case 'C': break;
 
-          case ',': ++it; continue;
+          case ',': ++token_it; continue;
           
           default:
-            temp << *it << " ";
-            it += it+1 == tokens.end() ? 0 : 1;
+            temp << *token_it << " ";
+            token_it += token_it+1 == tokens.end() ? 0 : 1;
             break;
         }
     }
+    */
     temp << endl;
-
-   
   }
 
-  invert_content = data_starts < text_starts && data_starts != -1;
+  invert_content = (data_starts < text_starts && data_starts != -1);
   if(invert_content){
     shift_position_data = position_counter - shift_position_data;
   }
@@ -342,22 +348,14 @@ stringstream second_pass(stringstream &temp){
   bool invert_content = data_starts < text_starts && data_starts != -1;
   output_destiny = &output_content;
 
-
-
   if(invert_content){
-
     output_destiny = &in_case_of_data_first;
   }
 
   while (!temp.eof()){
     getline(temp,line);
 
-
-    
-
-    tokens = get_tokens_from_line(line);
-
-    
+    tokens = get_tokens_from_line(line); 
 
     if(invert_content && line_counter == text_starts){
       output_destiny = &output_content;
@@ -368,43 +366,43 @@ stringstream second_pass(stringstream &temp){
       continue;
     } 
 
-    for(auto it = tokens.begin(); it != tokens.end(); ++it){
-      if(is_operation(*it, OT)){
-        auto op_info = OT[*it];
+    for(auto token_it = tokens.begin(); token_it != tokens.end(); ++token_it){
+      if(is_operation(*token_it, operations)){
+        auto op_info = operations[*token_it];
 
-        if(*it == "CONST"){
-          *(output_destiny) << *(it+1) << " ";
-          position_counter += op_info[!OPCODE];
-          ++it;
+        if(*token_it == "CONST"){
+          *(output_destiny) << *(token_it+1) << " ";
+          position_counter += (op_info[!OPCODE] - 1);
+          ++token_it;
         }
         else{
           *(output_destiny) << op_info[OPCODE] << " ";
           position_counter += op_info[!OPCODE];   
           if(op_info[!OPCODE] != 1){
             for(int i = 0; i < op_info[!OPCODE]-1; ++i){
-              it++;
-              if(is_label_defined(*it, ST)){
+              token_it++;
+              if(is_label_defined(*token_it, data_table)){
                 if(invert_content)
-                  *(output_destiny) << ST[*it]  + shift_position_data << " ";
+                  *(output_destiny) << data_table[*token_it]  + shift_position_data << " ";
                 else
-                  *(output_destiny) << ST[*it]  << " ";
+                  *(output_destiny) << data_table[*token_it]  << " ";
               }
-              else if(is_label_defined(*it, LT)){
+              else if(is_label_defined(*token_it, text_table)){
                 if(invert_content)
-                  *(output_destiny) << LT[*it] - shift_position_text  << " ";
+                  *(output_destiny) << text_table[*token_it] - shift_position_text  << " ";
                 
                 else
-                  *(output_destiny) << LT[*it]  << " ";
+                  *(output_destiny) << text_table[*token_it]  << " ";
               }
               else{
-                e.add(e.SEMANTICO,line_counter,"Simbolo {" + *it + "} não está definido.");
+                e.add(e.SEMANTICO,line_counter,"Simbolo {" + *token_it + "} não está definido.");
               }
             }         
           }
         }
       }
       else{
-        e.add(e.SINTATICO,line_counter,"Operação {" + *it + "} não existe.");
+        e.add(e.SINTATICO,line_counter,"Operação {" + *token_it + "} não existe.");
       }
     }
     ++line_counter;
@@ -442,6 +440,8 @@ int main(int argc,char **argv){
   if(e.any)
     e.show();
   else{
+    auto file_name_position = fname.find_last_of("/");
+    fname = fname.substr(file_name_position+1);
     ofstream destiny(fname.replace(fname.end()-3 ,fname.end(), "obj"));
     destiny << obj_data.str();
     destiny.close();
