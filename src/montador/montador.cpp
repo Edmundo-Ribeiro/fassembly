@@ -121,7 +121,6 @@ string serialize_table(symbols_table st) {
 string serialize_table(extern_use_table &ext) {
   stringstream output;
   uint8_t count = 0;
-  output << ext.size() << " ";
   for (auto const &x : ext) {
     if (x.second != -1) {
       output << x.first << " " << x.second << " ";
