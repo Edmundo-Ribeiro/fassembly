@@ -1,10 +1,10 @@
-INPUT N1
-INPUT N2
+INPUT N1; receber um numero
+INPUT N2;receber outro numero
 LOAD N1
 ADD N2
 STORE N3
 OUTPUT N3
 STOP
-N1: SPACE ; SPACE eh uma diretiva. uma funcao deve ser chamada 
-N2: SPACE ; e retornar uma nova posicao
+N1: SPACE
+N2: SPACE 
 N3: SPACE
