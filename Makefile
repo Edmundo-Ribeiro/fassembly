@@ -24,7 +24,7 @@ s: $(MAIN2)
 	@echo ----------------
 
 $(MAIN1): $(OBJS)
-	$(CXX) $(OBJS) -o $@
+	$(CXX) -Wall -ansi $(OBJS) -o $@
 
 $(MAIN2): $(OBJS2)
 	$(CXX) $(OBJS2) -o $@

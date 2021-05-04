@@ -98,15 +98,15 @@ bool is_label_definition(vsit it, vsit itend) {
 
 void print_table(symbols_table &st) {
   for (auto &x : st) {
-    cout << "[" << x.first << "] : [" << x.second << "]" << endl;
+    std::cout << "[" << x.first << "] : [" << x.second << "]" << endl;
   }
-  cout << endl;
+  std::cout << endl;
 }
 void print_table(extern_use_table &st) {
   for (auto &x : st) {
-    cout << "[" << x.first << "] : [" << x.second << "]" << endl;
+    std::cout << "[" << x.first << "] : [" << x.second << "]" << endl;
   }
-  cout << endl;
+  std::cout << endl;
 }
 
 string serialize_table(symbols_table st) {
@@ -249,7 +249,7 @@ string classifier(vector<string> tokens) {
 
     } else if (*token_it == "PUBLIC") {
       definition_table[*(token_it + 1)] = 0;
-      abbreviation += "CC";
+      abbreviation += "CL";
       ++token_it;
     } else if (is_operation(*token_it, operations)) {
       position_counter += *token_it != "CONST" ? operations[*token_it][!OPCODE] : 1;
@@ -381,19 +381,24 @@ stringstream first_pass(ifstream &source) {
   return temp;
 }
 //realiza segunda passagem e retonar dados para o arquivo .obj
-stringstream second_pass(stringstream &temp) {
+stringstream second_pass(stringstream &temp, string &bitmap) {
   string line;
   int operands;
   int table_content;
+  stringstream text_bitmap;
+  stringstream data_bitmap;
+  stringstream *output_bitmap;
   vector<string> tokens;
   stringstream output_content;
   stringstream in_case_of_data_first;
   stringstream *output_destiny;
   bool invert_content = data_starts < text_starts && data_starts != -1;
   output_destiny = &output_content;
+  output_bitmap = &text_bitmap;
 
   if (invert_content) {
     output_destiny = &in_case_of_data_first;
+    output_bitmap = &data_bitmap;
   }
 
   while (!temp.eof()) {
@@ -403,6 +408,7 @@ stringstream second_pass(stringstream &temp) {
 
     if (invert_content && line_counter == text_starts) {
       output_destiny = &output_content;
+      output_bitmap = &text_bitmap;
     }
 
     if (tokens.empty()) {
@@ -413,6 +419,7 @@ stringstream second_pass(stringstream &temp) {
     for (auto token_it = tokens.begin(); token_it != tokens.end(); ++token_it) {
       if (is_operation(*token_it, operations)) {
         auto op_info = operations[*token_it];
+        (*output_bitmap) << "0";
 
         if (*token_it == "CONST") {
           *(output_destiny) << *(token_it + 1) << " ";
@@ -428,6 +435,7 @@ stringstream second_pass(stringstream &temp) {
           for (int i = 0; i < operands; ++i) {
             token_it++;
             if (is_label_defined(*token_it, data_table)) {
+              (*output_bitmap) << "1";
               if (invert_content)
                 table_content = data_table[*token_it] + shift_position_data;
               else
@@ -440,7 +448,11 @@ stringstream second_pass(stringstream &temp) {
               *(output_destiny) << table_content << " ";
 
             } else if (is_label_defined(*token_it, text_table)) {
-              if (invert_content)
+              (*output_bitmap) << "0";
+              cout << "is_label_defined(*token_it, text_table)" << endl
+                   << "invert_content: " << invert_content << endl
+                   << "text_table[" << *token_it << "]" << endl;
+              if (invert_content && text_table[*token_it] != 0)
                 table_content = text_table[*token_it] - shift_position_text;
               else
                 table_content = text_table[*token_it];
@@ -450,7 +462,7 @@ stringstream second_pass(stringstream &temp) {
               }
 
               if (use_table.find(*token_it) != use_table.end()) {
-                use_table.insert(pair<string, int>(*token_it, position_counter + 1 + i));
+                use_table.insert(pair<string, int>(*token_it, position_counter + 1 + i - (invert_content ? shift_position_text : 0)));
               }
 
               *(output_destiny) << table_content << " ";
@@ -467,10 +479,17 @@ stringstream second_pass(stringstream &temp) {
     ++line_counter;
   }
 
-  if (invert_content) {
-    output_content << in_case_of_data_first.str();
+  for (auto &x : definition_table) {
+    if (is_label_defined(x.first, text_table)) {
+      x.second = text_table[x.first] - (invert_content ? shift_position_text : 0);
+    }
   }
 
+  if (invert_content) {
+    output_content << in_case_of_data_first.str();
+    text_bitmap << data_bitmap.str();
+  }
+  bitmap = text_bitmap.str();
   return output_content;
 }
 
@@ -479,6 +498,7 @@ int main(int argc, char **argv) {
   string fname;
   stringstream temp_data, obj_data;
   ifstream source;
+  string bitmap;
   int obj_file_size;
 
   for (uint8_t i = 0; i < number_of_files; ++i) {
@@ -486,18 +506,18 @@ int main(int argc, char **argv) {
     source = ifstream(fname);
 
     if (fname == "") {
-      cout << "É necessário informar um arquivo .asm" << endl;
+      std::cout << "É necessário informar um arquivo .asm" << endl;
       return 0;
     }
 
     if (!source.is_open()) {
-      cout << "Erro ao tentar abrir: " << fname << endl;
+      std::cout << "Erro ao tentar abrir: " << fname << endl;
       return 0;
     }
 
     temp_data = first_pass(source);
 
-    obj_data = second_pass(temp_data);
+    obj_data = second_pass(temp_data, bitmap);
 
     if (number_of_files > 1 && begin_end != 1)
       e.add(e.SINTATICO, "Módulo {" + fname + "} não utiliza corretamente BEGIN e END");
@@ -514,12 +534,13 @@ int main(int argc, char **argv) {
       fname = fname.substr(file_name_position + 1);
       fname = fname.replace(fname.end() - 4, fname.end(), "");
       ofstream destiny(fname + ".obj");
-      cout << fname << endl;
+      std::cout << fname << endl;
       destiny << fname << endl;
       destiny << obj_file_size << endl;
+      destiny << bitmap << endl;
       destiny << serialize_table(definition_table) << endl;
       destiny << serialize_table(use_table) << endl;
-      cout << "use_table: " << serialize_table(use_table) << endl;
+      std::cout << "use_table: " << serialize_table(use_table) << endl;
       destiny << obj_data.str();
       destiny.close();
     }
@@ -527,13 +548,15 @@ int main(int argc, char **argv) {
     print_table(data_table);
     print_table(text_table);
     print_table(use_table);
-
+    std::cout << bitmap << endl;
+    std::cout << bitmap.size() << endl;
     //resetar tudo para o proximo arquivo
     e.clear();
     data_table.clear();
     text_table.clear();
     definition_table.clear();
     use_table.clear();
+    bitmap.clear();
     data_starts = -1;
     text_starts = -1;
     shift_position_data = 0;

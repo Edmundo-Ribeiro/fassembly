@@ -1,10 +1,11 @@
 Mod_a:
 SECTION DATA
-r: SPACE
-n: SPACE
-um: CONST 1
-zero: CONST 0
-TRES: CONST 3
+r: SPACE ; 25
+n: SPACE ; 26
+um: CONST 1 ;27
+zero: CONST 0 ;28
+TRES: CONST 3 ;29
+
 
 SECTION TEXT
 mod_b: extern
@@ -13,19 +14,19 @@ public n
 public R
 public um
 public PULALINHA
+PUBLIC RAND
 public loop
-input N
-load N
-loop: sub TRES
-JMPP loop
-COPY zero, R
-jmp mod_b
-jmp mod_c
-JMPN PULALINHA
-COPY um, R
-PULALINHA:
-OUTPUT R
-jmp mod_b
-STOP
+input N; 0 1
+load N; 2 3
+loop: sub TRES; 4 5
+PULALINHA:RAND: JMPP loop; 6 7
+COPY zero, R; 8 9 10
+jmp mod_b; 11 12
+jmp mod_c; 13 14
+JMPN RAND; 15 16
+COPY um, R; 17 18 19
+OUTPUT R; 20 21
+jmp mod_b; 22 23
+STOP; 24
 
 
