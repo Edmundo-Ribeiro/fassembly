@@ -122,7 +122,7 @@ string serialize_table(extern_use_table &ext) {
   stringstream output;
   uint8_t count = 0;
   for (auto const &x : ext) {
-    if (x.second != -1) {
+    if (x.second > -1) {
       output << x.first << " " << x.second << " ";
       ++count;
     }
@@ -181,7 +181,7 @@ vector<string> get_tokens_from_line(string line) {
   bool flag_section = false;
   //para cada caracter na linha
   for (auto it = line.begin(); it != line.end(); ++it) {
-    found = (separators.find(*it) != string::npos || *it == '\t');  //é um separador?
+    found = (separators.find(*it) != string::npos || *it == '\t' || *it == '\r');  //é um separador?
 
     if (!found) aux += toupper(*it);  // se não for um separador adicionar caracter em aux
 
@@ -197,7 +197,7 @@ vector<string> get_tokens_from_line(string line) {
         data_starts = line_counter;
         shift_position_text = position_counter;
         break;
-      } else if (flag_section && aux == "TEXT") {
+      } else if (aux == "TEXT") {
         aux.clear();
         flag_section = false;
         in_data_section = false;
@@ -291,7 +291,7 @@ stringstream first_pass(ifstream &source) {
 
   while (!source.eof()) {
     getline(source, line);
-
+    // cout << line << endl;
     auto tokens = get_tokens_from_line(line);
 
     if (tokens.empty()) {
@@ -385,6 +385,7 @@ stringstream second_pass(stringstream &temp, string &bitmap) {
   string line;
   int operands;
   int table_content;
+  int shifted_value;
   stringstream text_bitmap;
   stringstream data_bitmap;
   stringstream *output_bitmap;
@@ -448,10 +449,12 @@ stringstream second_pass(stringstream &temp, string &bitmap) {
               *(output_destiny) << table_content << " ";
 
             } else if (is_label_defined(*token_it, text_table)) {
-              (*output_bitmap) << "0";
-              if (invert_content && text_table[*token_it] != 0)
-                table_content = text_table[*token_it] - shift_position_text;
-              else
+              // (*output_bitmap) << "1";
+              (*output_bitmap) << (use_table.find(*token_it) != use_table.end() ? "0" : "1");
+              if (invert_content && text_table[*token_it] != 0) {
+                shifted_value = text_table[*token_it] - shift_position_text;
+                table_content = shifted_value > 0 ? shifted_value : 0;
+              } else
                 table_content = text_table[*token_it];
 
               if (is_label_defined(*token_it, definition_table)) {
@@ -478,7 +481,7 @@ stringstream second_pass(stringstream &temp, string &bitmap) {
 
   for (auto &x : definition_table) {
     if (is_label_defined(x.first, text_table)) {
-      x.second = text_table[x.first] - (invert_content ? shift_position_text : 0);
+      x.second = text_table[x.first] - (invert_content && text_table[x.first] > 0 ? shift_position_text : 0);
     }
   }
 
@@ -539,6 +542,10 @@ int main(int argc, char **argv) {
       destiny << obj_data.str();
       destiny.close();
     }
+
+    print_table(text_table);
+    cout << "df t" << endl;
+    print_table(definition_table);
 
     //resetar tudo para o proximo arquivo
     e.clear();
