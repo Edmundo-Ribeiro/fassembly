@@ -14,7 +14,7 @@ typedef map<string, int> symbols_table;
 typedef multimap<string, int> extern_use_table;
 typedef vector<string>::iterator vsit;
 
-constexpr bool OPCODE = 0;
+const bool OPCODE = 0;
 
 symbols_table data_table;
 symbols_table text_table;
@@ -306,7 +306,7 @@ stringstream first_pass(ifstream &source) {
 
     token_it = tokens.begin();
     int i = 0;
-    while (i < abbreviation.size()) {
+    while (i < (int)abbreviation.size()) {
       switch (abbreviation[i]) {
         case 'L':
           token_it += 2;
@@ -449,9 +449,6 @@ stringstream second_pass(stringstream &temp, string &bitmap) {
 
             } else if (is_label_defined(*token_it, text_table)) {
               (*output_bitmap) << "0";
-              cout << "is_label_defined(*token_it, text_table)" << endl
-                   << "invert_content: " << invert_content << endl
-                   << "text_table[" << *token_it << "]" << endl;
               if (invert_content && text_table[*token_it] != 0)
                 table_content = text_table[*token_it] - shift_position_text;
               else
@@ -534,22 +531,15 @@ int main(int argc, char **argv) {
       fname = fname.substr(file_name_position + 1);
       fname = fname.replace(fname.end() - 4, fname.end(), "");
       ofstream destiny(fname + ".obj");
-      std::cout << fname << endl;
       destiny << fname << endl;
       destiny << obj_file_size << endl;
       destiny << bitmap << endl;
       destiny << serialize_table(definition_table) << endl;
       destiny << serialize_table(use_table) << endl;
-      std::cout << "use_table: " << serialize_table(use_table) << endl;
       destiny << obj_data.str();
       destiny.close();
     }
-    print_table(definition_table);
-    print_table(data_table);
-    print_table(text_table);
-    print_table(use_table);
-    std::cout << bitmap << endl;
-    std::cout << bitmap.size() << endl;
+
     //resetar tudo para o proximo arquivo
     e.clear();
     data_table.clear();

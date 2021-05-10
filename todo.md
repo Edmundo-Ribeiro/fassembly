@@ -1,0 +1,12 @@
+#Coisas para serem feitas montador
+- ler mais de um arquivoX
+  - saber quantos arquivos foram lidosX
+- encontrar Begin e End X
+  - tratar caso não exista e tenha de existirX
+- encontrar public e externX
+- criar cabeçalho para cada programaX
+  - nome do arquivoX
+  - tamanho do arquivoX
+  - informação de realocação (bitmap?) X
+  - tabela de utilização X
+  - tabela de definiçao X
