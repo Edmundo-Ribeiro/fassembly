@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
     o.set_data(obj_data);
   }
 
-  output = ofstream(objs.at(0).get_name() + ".o");
+  output = ofstream(objs.at(0).get_name() + "_ligado.obj");
   for (auto &o : objs) {
     output << o.get_serialized_data();
     o.print();
