@@ -17,8 +17,24 @@ class OBJ {
   code_data data;
   USE_TABLE use_table;
   SYMBOLS_TABLE def_table;  //definition table
+  int correction_factor = 0;
 
  public:
+  int get_size() { return size; }
+  string get_bitmap() { return bitmap; }
+  code_data get_data() { return data; }
+  USE_TABLE get_use_table() { return use_table; }
+  SYMBOLS_TABLE get_def_table() { return def_table; }
+  string get_name() { return name; }
+  int get_factor() { return correction_factor; }
+
+  void set_correction_factor(int factor) {
+    this->correction_factor = factor;
+  }
+
+  void set_data(code_data &_data) {
+    this->data = _data;
+  }
   SYMBOLS_TABLE deserialize_st(string table) {
     stringstream source(table);
     string buffer;
@@ -102,26 +118,41 @@ class OBJ {
     getline(source, buffer);
     data = deserialize_dt(buffer);
 
+    source.close();
     return true;
   }
 
+  string get_serialized_data() {
+    stringstream out;
+    for (auto it = data.begin(); it != data.end(); ++it) {
+      out << *it << " ";
+    }
+
+    return out.str();
+  }
   void print() {
-    cout << "Name: " << name << " Size: " << size << endl;
+    cout << "--------------------------------------------------------------------------------" << endl;
+    cout << "Name: " << name << " | Size: " << size << " | Factor: " << correction_factor << endl;
     cout << "Bitmap: " << bitmap << endl;
+    cout << "Definition table:" << endl;
     for (auto &x : def_table) {
       cout << "[" << x.first << "] : [" << x.second << "]" << endl;
     }
     cout << endl;
 
+    cout << "Use table:" << endl;
     for (auto &x : use_table) {
       cout << "[" << x.first << "] : [" << x.second << "]" << endl;
     }
     cout << endl;
+    cout << "Data:" << endl;
 
     for (auto it = data.begin(); it != data.end(); ++it) {
       cout << *it << " ";
     }
     cout << endl;
+
+    cout << "--------------------------------------------------------------------------------" << endl;
   }
 };
 
