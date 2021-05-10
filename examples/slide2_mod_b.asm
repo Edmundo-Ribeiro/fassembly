@@ -1,4 +1,7 @@
 MOD_B: BEGIN
+section data
+R: SPACE 
+DOIS: CONST 2
 section text
 A: EXTERN
 L1: EXTERN
@@ -11,7 +14,4 @@ STORE R
 DIV DOIS
 STORE R
 JMP L1
-section data
-R: SPACE 
-DOIS: CONST 2
 END

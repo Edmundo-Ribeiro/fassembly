@@ -2,6 +2,7 @@ build/
 .vscode
 simulador
 montador
+ligador
 *.o
 *.obj
 *.OUT

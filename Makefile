@@ -64,6 +64,7 @@ clean:
 clear: clean
 	rm -f $(MAIN1)
 	rm -f $(MAIN2)
+	rm -f $(MAIN3)
 
 discart:
 	rm -f *.obj
