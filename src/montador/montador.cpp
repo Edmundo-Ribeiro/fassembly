@@ -197,7 +197,7 @@ vector<string> get_tokens_from_line(string line) {
         data_starts = line_counter;
         shift_position_text = position_counter;
         break;
-      } else if (aux == "TEXT") {
+      } else if (flag_section && aux == "TEXT") {
         aux.clear();
         flag_section = false;
         in_data_section = false;
