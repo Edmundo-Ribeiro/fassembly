@@ -10,7 +10,7 @@
       "request": "launch",
       "program": "${workspaceFolder}/simulador",
       "args": [
-        "./examples/ex.obj",
+        "fizzbuzz.o",
       ],
       "stopAtEntry": true,
       "cwd": "${workspaceFolder}",
@@ -25,7 +25,6 @@
         }
       ]
     },
-
     {
       "name": "(gdb) Launch montador",
       "type": "cppdbg",

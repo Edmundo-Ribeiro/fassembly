@@ -543,10 +543,6 @@ int main(int argc, char **argv) {
       destiny.close();
     }
 
-    print_table(text_table);
-    cout << "df t" << endl;
-    print_table(definition_table);
-
     //resetar tudo para o proximo arquivo
     e.clear();
     data_table.clear();

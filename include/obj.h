@@ -95,6 +95,10 @@ class OBJ {
   }
   ~OBJ() {
   }
+
+  void flip_bit_bitmap(int pos) {
+    bitmap[pos] = bitmap[pos] == '0' ? '1' : '0';
+  }
   bool read_file(string filename) {
     OBJ return_obj;
     string buffer;

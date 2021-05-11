@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
       return 1;
     }
 
-    obj.print();
+    // obj.print();
     objs.push_back(obj);
   }
 
@@ -45,6 +45,7 @@ int main(int argc, char **argv) {
 
     for (auto &entry : o.get_def_table()) {
       global_def_table[entry.first] = entry.second + o.get_factor();
+      // o.flip_bit_bitmap(entry.second);  //impedir que quando esteja corrigindo o fator de correção repita o processo para essas posições
     }
     acc += o.get_size();
   }
@@ -61,17 +62,15 @@ int main(int argc, char **argv) {
     for (int i = 0; i < o.get_size(); ++i) {
       obj_data.at(i) += (bitmap[i] == '1' ? factor : 0);
     }
-
     o.set_data(obj_data);
   }
 
   output = ofstream(objs.at(0).get_name() + "_ligado.obj");
   for (auto &o : objs) {
     output << o.get_serialized_data();
-    o.print();
+    // o.print();
   }
 
-  print_table(global_def_table);
   output.close();
   return 0;
 }

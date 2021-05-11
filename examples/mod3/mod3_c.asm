@@ -1,0 +1,11 @@
+_L2: EXTERN
+Y: EXTERN
+VAL: EXTERN
+MOD_C: BEGIN
+section data
+PUBLIC MOD_C
+section text
+OUTPUT Y
+OUTPUT VAL
+JMP _L2
+END
